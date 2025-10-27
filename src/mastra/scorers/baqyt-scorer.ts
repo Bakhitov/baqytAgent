@@ -7,6 +7,7 @@ import {
   createKeywordCoverageScorer,
   createToneScorer,
 } from '@mastra/evals/scorers/code';
+import { BAQYT_EVALUATION_MODEL_ID, makeOpenRouterModel } from '../config/openrouter';
 
 type AssistantMessage = {
   content?: unknown;
@@ -69,7 +70,7 @@ const extractAssistantText = (output: AssistantMessage[] | undefined) => {
   return normalizeWhitespace(aggregated);
 };
 
-const evaluationModel = 'openrouter/z-ai/glm-4.5-air';
+const evaluationModel = makeOpenRouterModel(BAQYT_EVALUATION_MODEL_ID);
 export const tenWordResponseScorer = createScorer({
   name: 'Ten Word Compliance',
   description: 'Validates that the agent answers with exactly ten words.',

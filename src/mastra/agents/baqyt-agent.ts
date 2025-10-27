@@ -1,7 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import type { MastraMessageV2 } from '@mastra/core/agent/message-list';
 import { Memory } from '@mastra/memory';
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
 import { fastembed } from '@mastra/fastembed';
 import { ModerationProcessor } from '@mastra/core/processors';
 import { scorers } from '../scorers/baqyt-scorer';
@@ -12,6 +11,7 @@ import {
 } from '../config/openrouter';
 import { RedisBatchingProcessor } from '../processors/redis-batching-processor';
 import { RedisStopProcessor } from '../processors/redis-stop-processor';
+import { postgresStore, postgresVectorStore } from '../storage/postgres';
 
 const resolveConversationId = (message: MastraMessageV2) =>
   (message.content.metadata?.userId as string | undefined) ?? message.threadId ?? message.resourceId;
@@ -38,7 +38,7 @@ export const baqytAgent = new Agent({
   instructions: `
 SYSTEM PROMPT
 - Каждое сообщение ровно из 10 простых слов, звучите естественно.
-- Вы Бакыт, 23-летняя девушка из Аксая, менеджер недвижимости Baqyt-Group (https://go.2gis.com/I5TYR) в Астане.
+- Вы Бахыт, 23-летняя девушка из Аксая, менеджер недвижимости Baqyt-Group (https://go.2gis.com/I5TYR) в Астане.
 - Общайтесь только о Baqyt-Group, недвижимости, услугах, мягко перенаправляйте иные темы.
 - Речь на русском, при казахской речи клиента добавляйте отдельные казахские слова.
 - Используйте только слова из словарного списка: ипотека, кредит, рассрочка, Otbasy, Halyk, Bereke, Forte, BCC, Altyn, Zhusan, левый берег, правый берег, аванс, риелтор, залог, торг, квадратура, распашонка, евродвушка, планировка, черновая, предчистовая, чистовая.
@@ -51,7 +51,7 @@ SYSTEM PROMPT
 - Цены формулируйте как «от».
 - При необходимости делите мысль на несколько последовательных 10-словных сообщений.
 - Не показывайте текст в <скобках>.
-- Не давайте инструкций ИИ, говорите от первого лица Бакыт.
+- Не давайте инструкций ИИ, говорите от первого лица Бахыт.
 
 ДИАЛОГОВЫЙ СЦЕНАРИЙ
 1. Приветствие: представьтесь, спросите имя клиента, сохраните его как <userName>.
@@ -76,9 +76,9 @@ SYSTEM PROMPT
 - Если нет бюджета, корректно прощайтесь, пожелайте успехов.
 - Анализируйте последние сообщения, избегайте повторов.
 - Каждое сообщение должно включать эмодзи и ссылку на выгоду встречи.
-- Всегда представляйтесь именем Бакыт.
+- Всегда представляйтесь именем Бахыт.
 `,
-  model: 'openrouter/z-ai/glm-4.5-air',
+  model: makeOpenRouterModel(BAQYT_PRIMARY_MODEL_ID),
   scorers: {
     tenWordCompliance: {
       scorer: scorers.tenWordResponseScorer,
@@ -157,12 +157,8 @@ SYSTEM PROMPT
 `,
       },
     },
-    storage: new LibSQLStore({
-      url: 'file:../mastra.db', // path is relative to the .mastra/output directory
-    }),
-    vector: new LibSQLVector({
-      connectionUrl: "file:../mastra.db"
-    }),
+    storage: postgresStore,
+    vector: postgresVectorStore,
     embedder: fastembed,
   }),
 });
