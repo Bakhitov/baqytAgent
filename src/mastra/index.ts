@@ -1,13 +1,21 @@
 
+import 'dotenv/config';
+
 import { Mastra } from '@mastra/core/mastra';
 import { PinoLogger } from '@mastra/loggers';
 import { LibSQLStore } from '@mastra/libsql';
+import {
+  CloudExporter,
+  DefaultExporter,
+  SensitiveDataFilter,
+  SamplingStrategyType,
+} from '@mastra/core/ai-tracing';
 import { baqytAgent } from './agents/baqyt-agent';
-import { tenWordResponseScorer, companyMentionScorer } from './scorers/baqyt-scorer';
+import { scorers as baqytScorers } from './scorers/baqyt-scorer';
 
 export const mastra = new Mastra({
   agents: { baqytAgent },
-  scorers: { tenWordResponseScorer, companyMentionScorer },
+  scorers: baqytScorers,
   storage: new LibSQLStore({
     // stores observability, scores, ... into memory storage, if it needs to persist, change to file:../mastra.db
     url: ":memory:",
@@ -16,12 +24,16 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
-  telemetry: {
-    // Telemetry is deprecated and will be removed in the Nov 4th release
-    enabled: true, 
-  },
   observability: {
-    // Enables DefaultExporter and CloudExporter for AI tracing
-    default: { enabled: true }, 
+    default: { enabled: false },
+    configs: {
+      default: {
+        serviceName: 'baqyt-agent',
+        sampling: { type: SamplingStrategyType.ALWAYS },
+        runtimeContextKeys: ['userId', 'threadId', 'customerRequest'],
+        processors: [new SensitiveDataFilter()],
+        exporters: [new DefaultExporter(), new CloudExporter()],
+      },
+    },
   },
 });

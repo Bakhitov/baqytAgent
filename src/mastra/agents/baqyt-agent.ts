@@ -1,16 +1,44 @@
 import { Agent } from '@mastra/core/agent';
+import type { MastraMessageV2 } from '@mastra/core/agent/message-list';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
-import { fastembed } from "@mastra/fastembed";
+import { fastembed } from '@mastra/fastembed';
+import { ModerationProcessor } from '@mastra/core/processors';
 import { scorers } from '../scorers/baqyt-scorer';
+import {
+  BAQYT_MODERATION_MODEL_ID,
+  BAQYT_PRIMARY_MODEL_ID,
+  makeOpenRouterModel,
+} from '../config/openrouter';
+import { RedisBatchingProcessor } from '../processors/redis-batching-processor';
+import { RedisStopProcessor } from '../processors/redis-stop-processor';
 
+const resolveConversationId = (message: MastraMessageV2) =>
+  (message.content.metadata?.userId as string | undefined) ?? message.threadId ?? message.resourceId;
 
 export const baqytAgent = new Agent({
-  name: 'Tomiris Realtor Agent',
+  name: 'BaqytAgent',
+  inputProcessors: [
+    new RedisStopProcessor({
+      keyPrefix: 'baqyt:input-stop',
+      userIdResolver: resolveConversationId,
+    }),
+    new RedisBatchingProcessor({
+      keyPrefix: 'baqyt:input-batch',
+      userIdResolver: resolveConversationId,
+    }),
+    new ModerationProcessor({
+      model: makeOpenRouterModel(BAQYT_MODERATION_MODEL_ID),
+      categories: ['hate', 'harassment', 'violence'],
+      threshold: 0.7,
+      strategy: 'block',
+      instructions: 'Detect and flag inappropriate content in user messages',
+    }),
+  ],
   instructions: `
 SYSTEM PROMPT
 - Каждое сообщение ровно из 10 простых слов, звучите естественно.
-- Вы Томирис, 23-летняя девушка из Аксая, риелтор Baqyt-Group (https://go.2gis.com/I5TYR) в Астане.
+- Вы Бакыт, 23-летняя девушка из Аксая, менеджер недвижимости Baqyt-Group (https://go.2gis.com/I5TYR) в Астане.
 - Общайтесь только о Baqyt-Group, недвижимости, услугах, мягко перенаправляйте иные темы.
 - Речь на русском, при казахской речи клиента добавляйте отдельные казахские слова.
 - Используйте только слова из словарного списка: ипотека, кредит, рассрочка, Otbasy, Halyk, Bereke, Forte, BCC, Altyn, Zhusan, левый берег, правый берег, аванс, риелтор, залог, торг, квадратура, распашонка, евродвушка, планировка, черновая, предчистовая, чистовая.
@@ -23,7 +51,7 @@ SYSTEM PROMPT
 - Цены формулируйте как «от».
 - При необходимости делите мысль на несколько последовательных 10-словных сообщений.
 - Не показывайте текст в <скобках>.
-- Не давайте инструкций ИИ, говорите от первого лица Томирис.
+- Не давайте инструкций ИИ, говорите от первого лица Бакыт.
 
 ДИАЛОГОВЫЙ СЦЕНАРИЙ
 1. Приветствие: представьтесь, спросите имя клиента, сохраните его как <userName>.
@@ -48,7 +76,7 @@ SYSTEM PROMPT
 - Если нет бюджета, корректно прощайтесь, пожелайте успехов.
 - Анализируйте последние сообщения, избегайте повторов.
 - Каждое сообщение должно включать эмодзи и ссылку на выгоду встречи.
-- Всегда представляйтесь именем Томирис.
+- Всегда представляйтесь именем Бакыт.
 `,
   model: 'openrouter/z-ai/glm-4.5-air',
   scorers: {
@@ -59,11 +87,53 @@ SYSTEM PROMPT
         rate: 1,
       },
     },
-    companyMention: {
-      scorer: scorers.companyMentionScorer,
+    brandMention: {
+      scorer: scorers.brandMentionScorer,
       sampling: {
         type: 'ratio',
         rate: 1,
+      },
+    },
+    housingEmoji: {
+      scorer: scorers.housingEmojiScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 1,
+      },
+    },
+    meetingInvite: {
+      scorer: scorers.meetingInviteScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 1,
+      },
+    },
+    keywordCoverage: {
+      scorer: scorers.keywordCoverageScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.5,
+      },
+    },
+    answerRelevancy: {
+      scorer: scorers.answerRelevancyScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.5,
+      },
+    },
+    promptAlignment: {
+      scorer: scorers.promptAlignmentScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.5,
+      },
+    },
+    toneConsistency: {
+      scorer: scorers.toneConsistencyScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.5,
       },
     },
   },
