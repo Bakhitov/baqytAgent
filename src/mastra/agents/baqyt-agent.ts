@@ -108,32 +108,74 @@ SYSTEM PROMPT
         rate: 1,
       },
     },
+    forbiddenVocabulary: {
+      scorer: scorers.forbiddenVocabularyScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 1,
+      },
+    },
+    kazakhEcho: {
+      scorer: scorers.kazakhEchoScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 1,
+      },
+    },
+    benefitReminder: {
+      scorer: scorers.benefitReminderScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 1,
+      },
+    },
+    financingMention: {
+      scorer: scorers.financingMentionScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.75,
+      },
+    },
     keywordCoverage: {
       scorer: scorers.keywordCoverageScorer,
       sampling: {
         type: 'ratio',
-        rate: 0.5,
+        rate: 0.35,
       },
     },
     answerRelevancy: {
       scorer: scorers.answerRelevancyScorer,
       sampling: {
         type: 'ratio',
-        rate: 0.5,
+        rate: 0.35,
       },
     },
     promptAlignment: {
       scorer: scorers.promptAlignmentScorer,
       sampling: {
         type: 'ratio',
-        rate: 0.5,
+        rate: 0.35,
       },
     },
     toneConsistency: {
       scorer: scorers.toneConsistencyScorer,
       sampling: {
         type: 'ratio',
-        rate: 0.5,
+        rate: 0.35,
+      },
+    },
+    toxicity: {
+      scorer: scorers.toxicityScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.35,
+      },
+    },
+    bias: {
+      scorer: scorers.biasScorer,
+      sampling: {
+        type: 'ratio',
+        rate: 0.35,
       },
     },
   },
