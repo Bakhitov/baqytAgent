@@ -13,6 +13,7 @@ import {
 import { baqytAgent } from './agents/baqyt-agent';
 import { scorers as baqytScorers } from './scorers/baqyt-scorer';
 import { postgresStore } from './storage/postgres';
+import { wazzupWebhookRoute } from './server/routes/wazzup-webhook';
 
 type MastraLogLevel = (typeof LogLevel)[keyof typeof LogLevel];
 const LOG_LEVELS = new Set<MastraLogLevel>(Object.values(LogLevel) as MastraLogLevel[]);
@@ -35,6 +36,7 @@ export const mastra = new Mastra({
       swaggerUI: true,
       openAPIDocs: true,
     },
+    apiRoutes: [wazzupWebhookRoute],
   },
   logger: new PinoLogger({
     name: 'Mastra',
