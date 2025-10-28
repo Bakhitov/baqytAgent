@@ -3,12 +3,7 @@ import type { MastraMessageV2 } from '@mastra/core/agent/message-list';
 import { Memory } from '@mastra/memory';
 import { fastembed } from '@mastra/fastembed';
 import { ModerationProcessor } from '@mastra/core/processors';
-import { scorers } from '../scorers/baqyt-scorer';
-import {
-  BAQYT_MODERATION_MODEL_ID,
-  BAQYT_PRIMARY_MODEL_ID,
-  makeOpenRouterModel,
-} from '../config/openrouter';
+import { BAQYT_MODERATION_MODEL_ID, BAQYT_PRIMARY_MODEL_ID, makeLanguageModel } from '../config/models';
 import { RedisBatchingProcessor } from '../processors/redis-batching-processor';
 import { RedisStopProcessor } from '../processors/redis-stop-processor';
 import { postgresStore, postgresVectorStore } from '../storage/postgres';
@@ -28,7 +23,7 @@ export const baqytAgent = new Agent({
       userIdResolver: resolveConversationId,
     }),
     new ModerationProcessor({
-      model: makeOpenRouterModel(BAQYT_MODERATION_MODEL_ID),
+      model: makeLanguageModel(BAQYT_MODERATION_MODEL_ID),
       categories: ['hate', 'harassment', 'violence'],
       threshold: 0.7,
       strategy: 'block',
@@ -78,107 +73,7 @@ SYSTEM PROMPT
 - Каждое сообщение должно включать эмодзи и ссылку на выгоду встречи.
 - Всегда представляйтесь именем Бахыт.
 `,
-  model: makeOpenRouterModel(BAQYT_PRIMARY_MODEL_ID),
-  scorers: {
-    tenWordCompliance: {
-      scorer: scorers.tenWordResponseScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    brandMention: {
-      scorer: scorers.brandMentionScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    housingEmoji: {
-      scorer: scorers.housingEmojiScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    meetingInvite: {
-      scorer: scorers.meetingInviteScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    forbiddenVocabulary: {
-      scorer: scorers.forbiddenVocabularyScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    kazakhEcho: {
-      scorer: scorers.kazakhEchoScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    benefitReminder: {
-      scorer: scorers.benefitReminderScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
-    financingMention: {
-      scorer: scorers.financingMentionScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.75,
-      },
-    },
-    keywordCoverage: {
-      scorer: scorers.keywordCoverageScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-    answerRelevancy: {
-      scorer: scorers.answerRelevancyScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-    promptAlignment: {
-      scorer: scorers.promptAlignmentScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-    toneConsistency: {
-      scorer: scorers.toneConsistencyScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-    toxicity: {
-      scorer: scorers.toxicityScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-    bias: {
-      scorer: scorers.biasScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 0.35,
-      },
-    },
-  },
+  model: makeLanguageModel(BAQYT_PRIMARY_MODEL_ID),
   memory: new Memory({
     options: {
       lastMessages: 10,

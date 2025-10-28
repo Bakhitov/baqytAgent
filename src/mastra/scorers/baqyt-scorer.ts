@@ -9,7 +9,7 @@ import {
   createKeywordCoverageScorer,
   createToneScorer,
 } from '@mastra/evals/scorers/code';
-import { BAQYT_EVALUATION_MODEL_ID, makeOpenRouterModel } from '../config/openrouter';
+import { BAQYT_EVALUATION_MODEL_ID, makeLanguageModel } from '../config/models';
 
 type AssistantMessage = {
   content?: unknown;
@@ -103,7 +103,7 @@ const extractLatestUserText = (input: unknown) => {
   return '';
 };
 
-const evaluationModel = makeOpenRouterModel(BAQYT_EVALUATION_MODEL_ID);
+const evaluationModel = makeLanguageModel(BAQYT_EVALUATION_MODEL_ID);
 export const tenWordResponseScorer = createScorer({
   name: 'Ответ из десяти слов',
   description: 'Проверяет, что ответ содержит ровно десять слов. Қазақша: жауап 10 сөзден тұруы керек.',
