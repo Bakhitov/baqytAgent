@@ -50,7 +50,7 @@ export class RedisBatchingProcessor implements Processor {
   private connectPromise?: Promise<RedisClientType>;
 
   constructor({
-    windowMs = 1_000,
+    windowMs = 4_000,
     redisUrl = process.env.REDIS_URL,
     keyPrefix = 'mastra:input-batch',
     userIdResolver,

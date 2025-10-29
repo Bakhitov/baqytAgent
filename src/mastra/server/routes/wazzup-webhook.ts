@@ -8,6 +8,7 @@ import {
   type WazzupWebhookPayload,
   type WazzupMessage,
 } from '../services/wazzup-webhook-service';
+import { WazzupMediaService } from '../services/wazzup-media-service';
 
 const DEFAULT_WEBHOOK_PATH = '/webhooks/wazzup';
 
@@ -91,18 +92,37 @@ const shouldHandleMessage = (message: WazzupMessage, allowedChatIds: string[]) =
   return allowedChatIds.includes(message.chatId);
 };
 
-const resolveUserText = (message: WazzupMessage): string | null => {
-  const text = typeof message.text === 'string' ? message.text.trim() : '';
-  if (text) {
-    return text;
+const resolveMessageText = async (
+  message: WazzupMessage,
+  mediaService: WazzupMediaService,
+): Promise<string | null> => {
+  const segments: string[] = [];
+
+  const originalText = typeof message.text === 'string' ? message.text.trim() : '';
+  if (originalText) {
+    segments.push(originalText);
   }
 
-  if (message.contentUri) {
+  if (message.contentUri && message.type === 'audio') {
+    const transcript = await mediaService.transcribeAudioFromUrl(message.contentUri);
+    if (transcript) {
+      segments.push(`Транскрипция аудио клиента: ${transcript}`);
+    } else {
+      segments.push(`Клиент отправил аудио. Ссылка: ${message.contentUri}`);
+    }
+  } else if (message.contentUri && message.type === 'image') {
+    const description = await mediaService.describeImageFromUrl(message.contentUri);
+    if (description) {
+      segments.push(`Описание изображения: ${description}`);
+    } else {
+      segments.push(`Клиент отправил изображение. Ссылка: ${message.contentUri}`);
+    }
+  } else if (!segments.length && message.contentUri) {
     const kind = message.type ?? 'content';
-    return `Клиент отправил ${kind}. Ссылка: ${message.contentUri}`;
+    segments.push(`Клиент отправил ${kind}. Ссылка: ${message.contentUri}`);
   }
 
-  return null;
+  return segments.length ? segments.join('\n\n') : null;
 };
 
 type AssistantUiMessage = {
@@ -232,6 +252,7 @@ const processInboundMessages = async ({
 }) => {
   const log = makeLogger(logger);
   const allowedChatIds = resolveTargetChatIds();
+  const mediaService = new WazzupMediaService({ logger });
 
   for (const message of messages) {
     if (!shouldHandleMessage(message, allowedChatIds)) {
@@ -245,7 +266,7 @@ const processInboundMessages = async ({
       continue;
     }
 
-    const userText = resolveUserText(message);
+    const userText = await resolveMessageText(message, mediaService);
     if (!userText) {
       log.debug('Не удалось извлечь текст из сообщения Wazzup', {
         messageId: message.messageId,
